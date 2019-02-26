@@ -1,3 +1,5 @@
+# encryptlong
+
 原版官方网站
 ======================
 http://travistidwell.com/jsencrypt
@@ -5,6 +7,18 @@ http://travistidwell.com/jsencrypt
 介绍
 ======================
 基于jsencrypt扩展长文本分段加解密功能
+
+npm安装：
+
+```bash
+npm i encryptlong -S
+```
+
+浏览器使用：
+
+```html
+<script src="./bin/jsencrypt.js"></script>
+```
 
 基本使用
 ======================

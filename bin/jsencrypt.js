@@ -2947,6 +2947,93 @@ var RSAKey = /** @class */ (function () {
             return "0" + h;
         }
     };
+    /**
+     * 长文本加密
+     * @param {string} string 待加密长文本
+     * @returns {string} 加密后的base64编码
+     */
+    RSAKey.prototype.encryptLong = function (text) {
+        var ct = "";
+        // RSA每次加密117bytes，需要辅助方法判断字符串截取位置
+        // 1.获取字符串截取点
+        var bytes = new Array();
+        bytes.push(0);
+        var byteNo = 0;
+        var len = text.length;
+        var c;
+        var temp = 0;
+        for (var i = 0; i < len; i++) {
+            c = text.charCodeAt(i);
+            if (c >= 0x010000 && c <= 0x10ffff) {
+                // 特殊字符，如Ř，Ţ
+                byteNo += 4;
+            }
+            else if (c >= 0x000800 && c <= 0x00ffff) {
+                // 中文以及标点符号
+                byteNo += 3;
+            }
+            else if (c >= 0x000080 && c <= 0x0007ff) {
+                // 特殊字符，如È，Ò
+                byteNo += 2;
+            }
+            else {
+                // 英文以及标点符号
+                byteNo += 1;
+            }
+            if (byteNo % 117 >= 114 || byteNo % 117 == 0) {
+                if (byteNo - temp >= 114) {
+                    bytes.push(i);
+                    temp = byteNo;
+                }
+            }
+        }
+        // 2.截取字符串并分段加密
+        if (bytes.length > 1) {
+            for (var i = 0; i < bytes.length - 1; i++) {
+                var str = void 0;
+                if (i == 0) {
+                    str = text.substring(0, bytes[i + 1] + 1);
+                }
+                else {
+                    str = text.substring(bytes[i] + 1, bytes[i + 1] + 1);
+                }
+                var t1 = this.encrypt(str);
+                ct += t1;
+            }
+            if (bytes[bytes.length - 1] != text.length - 1) {
+                var lastStr = text.substring(bytes[bytes.length - 1] + 1);
+                ct += this.encrypt(lastStr);
+            }
+            return ct;
+        }
+        var t = this.encrypt(text);
+        return t;
+    };
+    /**
+     * 长文本解密
+     * @param {string} string 加密后的base64编码
+     * @returns {string} 解密后的原文
+     */
+    RSAKey.prototype.decryptLong = function (text) {
+        var _this = this;
+        var maxLength = ((this.n.bitLength() + 7) >> 3);
+        try {
+            if (text.length > maxLength) {
+                var ct_1 = "";
+                var lt = text.match(/.{1,256}/g); // 128位解密。取256位
+                lt.forEach(function (entry) {
+                    var t1 = _this.decrypt(entry);
+                    ct_1 += t1;
+                });
+                return ct_1;
+            }
+            var y = this.decrypt(text);
+            return y;
+        }
+        catch (ex) {
+            return false;
+        }
+    };
     // RSAKey.prototype.setPrivate = RSASetPrivate;
     // Set the private key fields N, e, and d from hex strings
     RSAKey.prototype.setPrivate = function (N, E, D) {
@@ -5255,6 +5342,34 @@ var JSEncrypt = /** @class */ (function () {
         // Return the encrypted string.
         try {
             return hex2b64(this.getKey().encrypt(str));
+        }
+        catch (ex) {
+            return false;
+        }
+    };
+    /**
+     * 分段加密长字符串
+     * @param {string} str the string to encrypt
+     * @return {string} the encrypted string encoded in base64
+     * @public
+     */
+    JSEncrypt.prototype.encryptLong = function (str) {
+        try {
+            return hex2b64(this.getKey().encryptLong(str));
+        }
+        catch (ex) {
+            return false;
+        }
+    };
+    /**
+     * 分段解密长字符串
+     * @param {string} str base64 encoded crypted string to decrypt
+     * @return {string} the decrypted string
+     * @public
+     */
+    JSEncrypt.prototype.decryptLong = function (str) {
+        try {
+            return this.getKey().decryptLong(b64tohex(str));
         }
         catch (ex) {
             return false;

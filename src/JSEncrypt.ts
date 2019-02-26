@@ -105,6 +105,34 @@ export default class JSEncrypt {
     }
 
     /**
+     * 分段加密长字符串
+     * @param {string} str the string to encrypt
+     * @return {string} the encrypted string encoded in base64
+     * @public
+     */
+    public encryptLong(str:string) {
+        try {
+            return hex2b64(this.getKey().encryptLong(str));
+        } catch (ex) {
+            return false;
+        }
+    }
+
+    /**
+     * 分段解密长字符串
+     * @param {string} str base64 encoded crypted string to decrypt
+     * @return {string} the decrypted string
+     * @public
+     */
+    public decryptLong(str:string) {
+        try {
+            return this.getKey().decryptLong(b64tohex(str));
+        } catch (ex) {
+            return false;
+        }
+    }
+
+    /**
      * Proxy method for RSAKey object's sign.
      * @param {string} str the string to sign
      * @param {function} digestMethod hash method
@@ -206,4 +234,3 @@ export default class JSEncrypt {
         return this.getKey().getPublicBaseKeyB64();
     }
 }
-

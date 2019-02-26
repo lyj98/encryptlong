@@ -1,7 +1,7 @@
 {
-  "name": "jsencrypt",
+  "name": "jsencryptlong",
   "version": "3.0.0-rc.1",
-  "description": "A Javascript library to perform OpenSSL RSA Encryption, Decryption, and Key Generation.",
+  "description": "基于jsencrypt扩展的可支持长文本加解密的库",
   "license": "MIT",
   "main": "bin/jsencrypt.js",
   "scripts": {

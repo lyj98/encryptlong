@@ -1,52 +1,103 @@
-Website
+原版官方网站
 ======================
 http://travistidwell.com/jsencrypt
 
-Introduction
+介绍
 ======================
-When browsing the internet looking for a good solution to RSA Javascript
-encryption, there is a whole slew of libraries that basically take the fantastic
-work done by Tom Wu @ http://www-cs-students.stanford.edu/~tjw/jsbn/ and then
-modify that code to do what they want.
+基于jsencrypt扩展长文本分段加解密功能
 
-What I couldn't find, however, was a simple wrapper around this library that
-basically uses the library <a href="https://github.com/travist/jsencrypt/pull/6">practically</a> untouched, but adds a wrapper to provide parsing of
-actual Private and Public key-pairs generated with OpenSSL.
+基本使用
+======================
 
-This library is the result of these efforts.
+这里只扩展了长文本的分段加解密，其它api请查看官网 http://travistidwell.com/jsencrypt
 
-How to use this library.
-=======================
-This library should work hand-in-hand with openssl.  With that said, here is how to use this library.
+- `encryptLong()` 长文本加密
+- `decryptLong()` 长文本解密
 
- - Within your terminal (Unix based OS) type the following.
-
+```js
+var startTime = new Date();
+//公钥
+var PUBLIC_KEY = `MIGeMA0GCSqGSIb3DQEBAQUAA4GMADCBiAKBgENHfFo4sznC10D7ijFooLnJvVav
+gWBgPyW0qfK/2wJRb1bSlWNnAVPm6KmP1++xU6LaA7u/PN6y5cBEVEL6zJBml9xJ
+mdAM7CiBWnToGaluDFpbqEb0rQfiK9xeJE1PgP73DrONBOXFjjMkEWWxGJpKpXPO
+NiI2H2nN+VOF/OZjAgMBAAE=`;
+//私钥
+var PRIVATE_KEY = `MIICWwIBAAKBgENHfFo4sznC10D7ijFooLnJvVavgWBgPyW0qfK/2wJRb1bSlWNn
+AVPm6KmP1++xU6LaA7u/PN6y5cBEVEL6zJBml9xJmdAM7CiBWnToGaluDFpbqEb0
+rQfiK9xeJE1PgP73DrONBOXFjjMkEWWxGJpKpXPONiI2H2nN+VOF/OZjAgMBAAEC
+gYAJhUIpmkByegnv3iiOGVo1MEEk1S0fsD7/XPN3sIKTb2asCJyvNlJPxytBY2OR
+PayyLNu+Y69/bB1q+cBawhbUaytu495pYvq5vPaifuYtxu+tWXJKfmyOXFZv+NqF
+81bTjzCJ/nJE7PtKp4UK+YLRJCXLBwm+oD8MeUcsL6kJkQJBAIPo/aTj4MLlx5p5
+ttpQ3d40J0FgVDacIzrT1q3gNEbSRC6ZzE7auTjikla0gW71uGKmN3TxgBqb6jfx
+0asIe88CQQCCkeJATnCol+MleT374NjkN7OmvYsKuJgACo6DiKThPhSNDM2nfprD
++6J9wtjs5pPCmGfijKJF+klOtdBkuG0tAkB1AO4zGxobZhulrr59aWtTFGmZeKta
+ASbSoGJ0ukFEbG+j8jGh5CqVBYuOMu/4DyatAgiAx1G8yH15gBpdHdpLAkEAgYy/
+gPCTJSQ20tqeHoj0ilOeI4WTLJsE7Z2L04RDm9zdxSl774FVi7jje4ZVd5A78WsI
+QCcrZuUz0S3iS90VLQJAMkom/AjLEvru4wGSsvfCcGBtQM2BDzToaHTfAGoxZ/GM
+J9PLlyYGgACPHpLJEMCIbl2o6Mh1Fj6XwfFg1WV7XA==`;
+//使用公钥加密
+var encrypt = new JSEncrypt();
+encrypt.setPublicKey(
+    '-----BEGIN PUBLIC KEY-----' + PUBLIC_KEY + '-----END PUBLIC KEY-----'
+);
+// 一段长文本json
+var data = {
+    token: '892ga42959d21d8957fa8b5c5d672dde',
+    uid: 75952368,
+    timestamp: +new Date(),
+    udid: 'fdakjlfkdas',
+    udid1: 'fdakjlfkdas',
+    udid2: 'fdakjlfkdas',
+    udid3: 'fdakjlfkdas',
+    udid4: 'fdakjlfkdas',
+    udid5: 'fdakjlfkdas'
+};
+data = JSON.stringify(data);
+var encrypted = encrypt.encryptLong(data);
+var endTime = new Date();
+console.log('加密后数据:%o', encrypted);
+console.log('加密时间' + (endTime - startTime) + 'ms');
+//使用私钥解密
+var decrypt = new JSEncrypt();
+//decrypt.setPublicKey('-----BEGIN PUBLIC KEY-----' + PUBLIC_KEY + '-----END PUBLIC KEY-----');
+decrypt.setPrivateKey(
+    '-----BEGIN RSA PRIVATE KEY-----' + PRIVATE_KEY + '-----END RSA PRIVATE KEY-----'
+);
+var uncrypted = decrypt.decryptLong(encrypted);
+console.log('解密后数据:%o', uncrypted);
 ```
+
+其它使用
+=======================
+这个库应该与openssl一起使用
+
+- 在终端（基于Unix的操作系统）
+
+```bash
 openssl genrsa -out rsa_1024_priv.pem 1024
 ```
 
- - This generates a private key, which you can see by doing the following...
+- 会生成一个私钥，您可以通过执行以下操作查看
 
-```
+```bash
 cat rsa_1024_priv.pem
 ```
 
- - You can then copy and paste this in the Private Key section of within index.html.
- - Next, you can then get the public key by executing the following command.
+- 然后，您可以将其复制到index.html内的私钥处
+- 接下来，您可以通过执行以下命令来获取公钥
 
-```
+```bash
 openssl rsa -pubout -in rsa_1024_priv.pem -out rsa_1024_pub.pem
 ```
 
- - You can see the public key by typing...
+- 查看公钥
 
-```
+```bash
 cat rsa_1024_pub.pem
 ```
 
- - Now copy and paste this in the Public key within the index.html.
- - Now you can then convert to and from encrypted text by doing the following in code.
-
+- 将其复制到index.html中的Public键中
+- 现在，您可以通过在代码中执行以下操作来转换加密解密文本转换
 
 ```html
 <!doctype html>
@@ -115,11 +166,11 @@ gwQco1KRMDSmXSMkDwIDAQAB
 </html>
 ```
 
- - Look at how http://www.travistidwell.com/jsencrypt/example.html works to get a better idea.
+- 查看更好的示例 http://www.travistidwell.com/jsencrypt/example.html
 
- - Signing and verification works in a similar way.
+- 签名和验证
 
-```javascript
+```js
 // Sign with the private key...
 var sign = new JSEncrypt();
 sign.setPrivateKey($('#privkey').val());
@@ -139,19 +190,16 @@ else {
 }
 ```
 
-- Note that you have to provide the hash function. In this example we use one from the [CryptoJS](https://github.com/brix/crypto-js) library, but you can use whichever you want.
-- Also, unless you use a custom hash function, you should provide the hash type to the `sign` method. Possible values are: `md2`, `md5`, `sha1`, `sha224`, `sha256`, `sha384`, `sha512`, `ripemd160`.
+- 您必须提供哈希函数。在本例中，我们使用的是[CryptoJS]([CryptoJS](https://github.com/brix/crypto-js) )库
+- 此外，除非使用自定义散列函数，否则应该为`sign`方法提供散列类型。可能的值有：`md2`, `md5`, `sha1`, `sha224`, `sha256`, `sha384`, `sha512`, `ripemd160`.
 
-Other Information
+其它信息
 ========================
 
-This library heavily utilizes the wonderful work of Tom Wu found at http://www-cs-students.stanford.edu/~tjw/jsbn/.
-
-This jsbn library was written using the raw variables to perform encryption.  This is great for encryption, but most private keys use a Private Key in the PEM format seen below.
-
-1024 bit RSA Private Key in Base64 Format
+Base64格式的1024位RSA私钥
 -----------------------------------------
-```
+
+```txt
 -----BEGIN RSA PRIVATE KEY-----
 MIICXgIBAAKBgQDHikastc8+I81zCg/qWW8dMr8mqvXQ3qbPAmu0RjxoZVI47tvs
 kYlFAXOf0sPrhO2nUuooJngnHV0639iTTEYG1vckNaW2R6U5QTdQ5Rq5u+uV3pMk
@@ -168,25 +216,3 @@ bti+jc1dUg5wb+aeZlgJAkEAurrpmpqj5vg087ZngKfFGR5rozDiTsK5DceTV97K
 a3Y+Nzl+XWTxDBWk4YPh2ZlKv402hZEfWBYxUDn5ZkH/bw==
 -----END RSA PRIVATE KEY-----
 ```
-
-This library simply takes keys in the following format, and translates it to those variables needed to perform the encryptions used in Tom Wu's library.
-
-Here are some good resources to investigate further.
- - http://etherhack.co.uk/asymmetric/docs/rsa_key_breakdown.html
- - http://www.di-mgt.com.au/rsa_alg.html
- - https://polarssl.org/kb/cryptography/asn1-key-structures-in-der-and-pem
-
-With this information, we can translate a private key format to the variables
-required with the jsbn library from Tom Wu by using the following mappings.
-
-```
-modulus => n
-public exponent => e
-private exponent => d
-prime1 => p
-prime2 => q
-exponent1 => dmp1
-exponent2 => dmq1
-coefficient => coeff
-```
-

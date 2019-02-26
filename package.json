@@ -1,6 +1,6 @@
 {
-  "name": "jsencryptlong",
-  "version": "3.0.0-rc.1",
+  "name": "encryptlong",
+  "version": "3.1.0",
   "description": "基于jsencrypt扩展的可支持长文本加解密的库",
   "license": "MIT",
   "main": "bin/jsencrypt.js",
@@ -25,11 +25,12 @@
   "homepage": "http://www.travistidwell.com/jsencrypt",
   "repository": {
     "type": "git",
-    "url": "git://github.com/travist/jsencrypt.git"
+    "url": "git://github.com/lsxlsxxslxsl/encryptlong.git"
   },
   "bugs": {
-    "url": "http://github.com/travist/jsencrypt/issues"
+    "url": "http://github.com/lsxlsxxslxsl/encryptlong/issues"
   },
+  "keywords": ["encrypt", "jsencrypt", "jsencryptlong", "rsa", "encryptlong"],
   "devDependencies": {
     "expect.js": "^0.3.1",
     "gulp": "^3.9.1",

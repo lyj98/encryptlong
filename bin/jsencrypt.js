@@ -5509,7 +5509,7 @@ var JSEncrypt = /** @class */ (function () {
         // Return the private representation of this key.
         return this.getKey().getPublicBaseKeyB64();
     };
-    JSEncrypt.version = "3.1.0";
+    JSEncrypt.version = "3.1.2";
     return JSEncrypt;
 }());
 

@@ -1,6 +1,5 @@
-import {b64tohex, hex2b64} from "../lib/jsbn/base64";
-import {JSEncryptRSAKey} from "./JSEncryptRSAKey";
-
+import { b64tohex, hex2b64 } from "../lib/jsbn/base64";
+import { JSEncryptRSAKey } from "./JSEncryptRSAKey";
 
 declare var JSENCRYPT_VERSION:string;
 
@@ -112,7 +111,22 @@ export default class JSEncrypt {
      */
     public encryptLong(str:string) {
         try {
-            return hex2b64(this.getKey().encryptLong(str));
+            let encrypted = this.getKey().encryptLong(str) || "";
+            let uncrypted = this.getKey().decryptLong(encrypted) || "";
+            let count = 0;
+            while (uncrypted.length < 20) {
+                // 如果加密出错，重新加密
+                encrypted = this.getKey().encryptLong(str) || "";
+                uncrypted = this.getKey().decryptLong(encrypted) || "";
+                count++;
+                // console.log('加密出错次数', count)
+                if (count > 10) {
+                    // 重复加密不能大于10次
+                    // console.log('加密次数过多')
+                    break;
+                }
+            }
+            return encrypted;
         } catch (ex) {
             return false;
         }
@@ -126,7 +140,7 @@ export default class JSEncrypt {
      */
     public decryptLong(str:string) {
         try {
-            return this.getKey().decryptLong(b64tohex(str));
+            return this.getKey().decryptLong(str);
         } catch (ex) {
             return false;
         }
@@ -140,7 +154,11 @@ export default class JSEncrypt {
      * @return {string} the signature encoded in base64
      * @public
      */
-    public sign(str:string, digestMethod:(str:string) => string, digestName:string):string|false {
+    public sign(
+        str:string,
+        digestMethod:(str:string) => string,
+        digestName:string
+    ):string | false {
         // return the RSA signature of 'str' in 'hex' format.
         try {
             return hex2b64(this.getKey().sign(str, digestMethod, digestName));
@@ -210,7 +228,6 @@ export default class JSEncrypt {
         // Return the private representation of this key.
         return this.getKey().getPrivateBaseKeyB64();
     }
-
 
     /**
      * Returns the pem encoded representation of the public key

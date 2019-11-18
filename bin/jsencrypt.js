@@ -2847,7 +2847,8 @@ function pkcs1pad1(s, n) {
 }
 // PKCS#1 (type 2, random) pad input string s to n bytes, and return a bigint
 function pkcs1pad2(s, n) {
-    if (n < s.length + 11) { // TODO: fix for utf-8
+    if (n < s.length + 11) {
+        // TODO: fix for utf-8
         console.error("Message too long for RSA");
         return null;
     }
@@ -2855,10 +2856,11 @@ function pkcs1pad2(s, n) {
     var i = s.length - 1;
     while (i >= 0 && n > 0) {
         var c = s.charCodeAt(i--);
-        if (c < 128) { // encode using utf-8
+        if (c < 128) {
+            // encode using utf-8
             ba[--n] = c;
         }
-        else if ((c > 127) && (c < 2048)) {
+        else if (c > 127 && c < 2048) {
             ba[--n] = (c & 63) | 128;
             ba[--n] = (c >> 6) | 192;
         }
@@ -2871,7 +2873,8 @@ function pkcs1pad2(s, n) {
     ba[--n] = 0;
     var rng = new SecureRandom();
     var x = [];
-    while (n > 2) { // random non-zero pad
+    while (n > 2) {
+        // random non-zero pad
         x[0] = 0;
         while (x[0] == 0) {
             rng.nextBytes(x);
@@ -2913,7 +2916,12 @@ var RSAKey = /** @class */ (function () {
         while (xp.compareTo(xq) < 0) {
             xp = xp.add(this.p);
         }
-        return xp.subtract(xq).multiply(this.coeff).mod(this.p).multiply(this.q).add(xq);
+        return xp
+            .subtract(xq)
+            .multiply(this.coeff)
+            .mod(this.p)
+            .multiply(this.q)
+            .add(xq);
     };
     //#endregion PROTECTED
     //#region PUBLIC
@@ -2953,61 +2961,68 @@ var RSAKey = /** @class */ (function () {
      * @returns {string} 加密后的base64编码
      */
     RSAKey.prototype.encryptLong = function (text) {
-        var ct = "";
-        // RSA每次加密117bytes，需要辅助方法判断字符串截取位置
-        // 1.获取字符串截取点
-        var bytes = new Array();
-        bytes.push(0);
-        var byteNo = 0;
-        var len = text.length;
-        var c;
-        var temp = 0;
-        for (var i = 0; i < len; i++) {
-            c = text.charCodeAt(i);
-            if (c >= 0x010000 && c <= 0x10ffff) {
-                // 特殊字符，如Ř，Ţ
-                byteNo += 4;
-            }
-            else if (c >= 0x000800 && c <= 0x00ffff) {
-                // 中文以及标点符号
-                byteNo += 3;
-            }
-            else if (c >= 0x000080 && c <= 0x0007ff) {
-                // 特殊字符，如È，Ò
-                byteNo += 2;
-            }
-            else {
-                // 英文以及标点符号
-                byteNo += 1;
-            }
-            if (byteNo % 117 >= 114 || byteNo % 117 == 0) {
-                if (byteNo - temp >= 114) {
-                    bytes.push(i);
-                    temp = byteNo;
+        try {
+            var ct = "";
+            // RSA每次加密117bytes，需要辅助方法判断字符串截取位置
+            // 1.获取字符串截取点
+            var bytes = new Array();
+            bytes.push(0);
+            var byteNo = 0;
+            var len = text.length;
+            var c = void 0;
+            var temp = 0;
+            for (var i = 0; i < len; i++) {
+                c = text.charCodeAt(i);
+                if (c >= 0x010000 && c <= 0x10ffff) {
+                    // 特殊字符，如Ř，Ţ
+                    byteNo += 4;
                 }
-            }
-        }
-        // 2.截取字符串并分段加密
-        if (bytes.length > 1) {
-            for (var i = 0; i < bytes.length - 1; i++) {
-                var str = void 0;
-                if (i == 0) {
-                    str = text.substring(0, bytes[i + 1] + 1);
+                else if (c >= 0x000800 && c <= 0x00ffff) {
+                    // 中文以及标点符号
+                    byteNo += 3;
+                }
+                else if (c >= 0x000080 && c <= 0x0007ff) {
+                    // 特殊字符，如È，Ò
+                    byteNo += 2;
                 }
                 else {
-                    str = text.substring(bytes[i] + 1, bytes[i + 1] + 1);
+                    // 英文以及标点符号
+                    byteNo += 1;
                 }
-                var t1 = this.encrypt(str);
-                ct += t1;
+                if (byteNo % 117 >= 114 || byteNo % 117 == 0) {
+                    if (byteNo - temp >= 114) {
+                        bytes.push(i);
+                        temp = byteNo;
+                    }
+                }
             }
-            if (bytes[bytes.length - 1] != text.length - 1) {
-                var lastStr = text.substring(bytes[bytes.length - 1] + 1);
-                ct += this.encrypt(lastStr);
+            // 2.截取字符串并分段加密
+            if (bytes.length > 1) {
+                for (var i = 0; i < bytes.length - 1; i++) {
+                    var str = void 0;
+                    if (i == 0) {
+                        str = text.substring(0, bytes[i + 1] + 1);
+                    }
+                    else {
+                        str = text.substring(bytes[i] + 1, bytes[i + 1] + 1);
+                    }
+                    var t1 = this.encrypt(str);
+                    ct += t1;
+                }
+                if (bytes[bytes.length - 1] != text.length - 1) {
+                    var lastStr = text.substring(bytes[bytes.length - 1] + 1);
+                    ct += this.encrypt(lastStr);
+                }
+                return hex2b64(ct);
+                // return ct;
             }
-            return ct;
+            var t = this.encrypt(text);
+            var y = hex2b64(t);
+            return y;
         }
-        var t = this.encrypt(text);
-        return t;
+        catch (ex) {
+            return false;
+        }
     };
     /**
      * 长文本解密
@@ -3016,7 +3031,8 @@ var RSAKey = /** @class */ (function () {
      */
     RSAKey.prototype.decryptLong = function (text) {
         var _this = this;
-        var maxLength = ((this.n.bitLength() + 7) >> 3);
+        var maxLength = (this.n.bitLength() + 7) >> 3;
+        text = b64tohex(text);
         try {
             if (text.length > maxLength) {
                 var ct_1 = "";
@@ -3073,13 +3089,21 @@ var RSAKey = /** @class */ (function () {
         for (;;) {
             for (;;) {
                 this.p = new BigInteger(B - qs, 1, rng);
-                if (this.p.subtract(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) == 0 && this.p.isProbablePrime(10)) {
+                if (this.p
+                    .subtract(BigInteger.ONE)
+                    .gcd(ee)
+                    .compareTo(BigInteger.ONE) == 0 &&
+                    this.p.isProbablePrime(10)) {
                     break;
                 }
             }
             for (;;) {
                 this.q = new BigInteger(qs, 1, rng);
-                if (this.q.subtract(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) == 0 && this.q.isProbablePrime(10)) {
+                if (this.q
+                    .subtract(BigInteger.ONE)
+                    .gcd(ee)
+                    .compareTo(BigInteger.ONE) == 0 &&
+                    this.q.isProbablePrime(10)) {
                     break;
                 }
             }
@@ -3137,7 +3161,9 @@ var RSAKey = /** @class */ (function () {
                     rsa.dmp1 = rsa.d.mod(p1);
                     rsa.dmq1 = rsa.d.mod(q1);
                     rsa.coeff = rsa.q.modInverse(rsa.p);
-                    setTimeout(function () { callback(); }, 0); // escape
+                    setTimeout(function () {
+                        callback();
+                    }, 0); // escape
                 }
                 else {
                     setTimeout(loop1, 0);
@@ -3223,10 +3249,11 @@ function pkcs1unpad2(d, n) {
     var ret = "";
     while (++i < b.length) {
         var c = b[i] & 255;
-        if (c < 128) { // utf-8 decode
+        if (c < 128) {
+            // utf-8 decode
             ret += String.fromCharCode(c);
         }
-        else if ((c > 191) && (c < 224)) {
+        else if (c > 191 && c < 224) {
             ret += String.fromCharCode(((c & 31) << 6) | (b[i + 1] & 63));
             ++i;
         }
@@ -3246,7 +3273,7 @@ var DIGEST_HEADERS = {
     sha256: "3031300d060960864801650304020105000420",
     sha384: "3041300d060960864801650304020205000430",
     sha512: "3051300d060960864801650304020305000440",
-    ripemd160: "3021300906052b2403020105000414",
+    ripemd160: "3021300906052b2403020105000414"
 };
 function getDigestHeader(name) {
     return DIGEST_HEADERS[name] || "";
@@ -5154,10 +5181,7 @@ var JSEncryptRSAKey = /** @class */ (function (_super) {
             hex: "00" + second_sequence.getEncodedHex()
         });
         var seq = new KJUR.asn1.DERSequence({
-            array: [
-                first_sequence,
-                bit_string
-            ]
+            array: [first_sequence, bit_string]
         });
         return seq.getEncodedHex();
     };
@@ -5220,8 +5244,7 @@ var JSEncryptRSAKey = /** @class */ (function (_super) {
      */
     JSEncryptRSAKey.hasPublicKeyProperty = function (obj) {
         obj = obj || {};
-        return (obj.hasOwnProperty("n") &&
-            obj.hasOwnProperty("e"));
+        return obj.hasOwnProperty("n") && obj.hasOwnProperty("e");
     };
     /**
      * Check if the object contains ALL the parameters of an RSA key.
@@ -5355,7 +5378,22 @@ var JSEncrypt = /** @class */ (function () {
      */
     JSEncrypt.prototype.encryptLong = function (str) {
         try {
-            return hex2b64(this.getKey().encryptLong(str));
+            var encrypted = this.getKey().encryptLong(str) || "";
+            var uncrypted = this.getKey().decryptLong(encrypted) || "";
+            var count = 0;
+            while (uncrypted.length < 20) {
+                // 如果加密出错，重新加密
+                encrypted = this.getKey().encryptLong(str) || "";
+                uncrypted = this.getKey().decryptLong(encrypted) || "";
+                count++;
+                // console.log('加密出错次数', count)
+                if (count > 10) {
+                    // 重复加密不能大于10次
+                    // console.log('加密次数过多')
+                    break;
+                }
+            }
+            return encrypted;
         }
         catch (ex) {
             return false;
@@ -5369,7 +5407,7 @@ var JSEncrypt = /** @class */ (function () {
      */
     JSEncrypt.prototype.decryptLong = function (str) {
         try {
-            return this.getKey().decryptLong(b64tohex(str));
+            return this.getKey().decryptLong(str);
         }
         catch (ex) {
             return false;

@@ -4,9 +4,9 @@
 
 // convert a (hex) string to a bignum object
 
-import {BigInteger, nbi, parseBigInt} from "./jsbn";
-import {SecureRandom} from "./rng";
-
+import { BigInteger, nbi, parseBigInt } from "./jsbn";
+import { SecureRandom } from "./rng";
+import { hex2b64, b64tohex } from "./base64";
 
 // function linebrk(s,n) {
 //   var ret = "";
@@ -41,7 +41,8 @@ function pkcs1pad1(s:string, n:number) {
 
 // PKCS#1 (type 2, random) pad input string s to n bytes, and return a bigint
 function pkcs1pad2(s:string, n:number) {
-    if (n < s.length + 11) { // TODO: fix for utf-8
+    if (n < s.length + 11) {
+        // TODO: fix for utf-8
 
         console.error("Message too long for RSA");
         return null;
@@ -50,9 +51,10 @@ function pkcs1pad2(s:string, n:number) {
     let i = s.length - 1;
     while (i >= 0 && n > 0) {
         const c = s.charCodeAt(i--);
-        if (c < 128) { // encode using utf-8
+        if (c < 128) {
+            // encode using utf-8
             ba[--n] = c;
-        } else if ((c > 127) && (c < 2048)) {
+        } else if (c > 127 && c < 2048) {
             ba[--n] = (c & 63) | 128;
             ba[--n] = (c >> 6) | 192;
         } else {
@@ -64,7 +66,8 @@ function pkcs1pad2(s:string, n:number) {
     ba[--n] = 0;
     const rng = new SecureRandom();
     const x = [];
-    while (n > 2) { // random non-zero pad
+    while (n > 2) {
+        // random non-zero pad
         x[0] = 0;
         while (x[0] == 0) {
             rng.nextBytes(x);
@@ -78,7 +81,7 @@ function pkcs1pad2(s:string, n:number) {
 
 // "empty" RSA key constructor
 export class RSAKey {
-  constructor() {
+    constructor() {
         this.n = null;
         this.e = 0;
         this.d = null;
@@ -97,7 +100,6 @@ export class RSAKey {
         return x.modPowInt(this.e, this.n);
     }
 
-
     // RSAKey.prototype.doPrivate = RSADoPrivate;
     // Perform raw private operation on "x": return x^d (mod n)
     public doPrivate(x:BigInteger) {
@@ -112,7 +114,12 @@ export class RSAKey {
         while (xp.compareTo(xq) < 0) {
             xp = xp.add(this.p);
         }
-        return xp.subtract(xq).multiply(this.coeff).mod(this.p).multiply(this.q).add(xq);
+        return xp
+            .subtract(xq)
+            .multiply(this.coeff)
+            .mod(this.p)
+            .multiply(this.q)
+            .add(xq);
     }
 
     //#endregion PROTECTED
@@ -129,7 +136,6 @@ export class RSAKey {
             console.error("Invalid RSA public key");
         }
     }
-
 
     // RSAKey.prototype.encrypt = RSAEncrypt;
     // Return the PKCS#1 RSA encryption of "text" as an even-length hex string
@@ -157,58 +163,65 @@ export class RSAKey {
      * @returns {string} 加密后的base64编码
      */
     public encryptLong(text:string) {
-        let ct = "";
-        // RSA每次加密117bytes，需要辅助方法判断字符串截取位置
-        // 1.获取字符串截取点
-        const bytes = new Array();
-        bytes.push(0);
-        let byteNo = 0;
-        const len = text.length;
-        let c;
-        let temp = 0;
-        for (let i = 0; i < len; i++) {
-            c = text.charCodeAt(i);
-            if (c >= 0x010000 && c <= 0x10ffff) {
-                // 特殊字符，如Ř，Ţ
-                byteNo += 4;
-            } else if (c >= 0x000800 && c <= 0x00ffff) {
-                // 中文以及标点符号
-                byteNo += 3;
-            } else if (c >= 0x000080 && c <= 0x0007ff) {
-                // 特殊字符，如È，Ò
-                byteNo += 2;
-            } else {
-                // 英文以及标点符号
-                byteNo += 1;
-            }
-            if (byteNo % 117 >= 114 || byteNo % 117 == 0) {
-                if (byteNo - temp >= 114) {
-                    bytes.push(i);
-                    temp = byteNo;
-                }
-            }
-        }
-        // 2.截取字符串并分段加密
-        if (bytes.length > 1) {
-            for (let i = 0; i < bytes.length - 1; i++) {
-                let str;
-                if (i == 0) {
-                    str = text.substring(0, bytes[i + 1] + 1);
+        try {
+            let ct = "";
+            // RSA每次加密117bytes，需要辅助方法判断字符串截取位置
+            // 1.获取字符串截取点
+            const bytes = new Array();
+            bytes.push(0);
+            let byteNo = 0;
+            const len = text.length;
+            let c;
+            let temp = 0;
+            for (let i = 0; i < len; i++) {
+                c = text.charCodeAt(i);
+                if (c >= 0x010000 && c <= 0x10ffff) {
+                    // 特殊字符，如Ř，Ţ
+                    byteNo += 4;
+                } else if (c >= 0x000800 && c <= 0x00ffff) {
+                    // 中文以及标点符号
+                    byteNo += 3;
+                } else if (c >= 0x000080 && c <= 0x0007ff) {
+                    // 特殊字符，如È，Ò
+                    byteNo += 2;
                 } else {
-                    str = text.substring(bytes[i] + 1, bytes[i + 1] + 1);
+                    // 英文以及标点符号
+                    byteNo += 1;
                 }
-                const t1 = this.encrypt(str);
-                ct += t1;
+                if (byteNo % 117 >= 114 || byteNo % 117 == 0) {
+                    if (byteNo - temp >= 114) {
+                        bytes.push(i);
+                        temp = byteNo;
+                    }
+                }
             }
+            // 2.截取字符串并分段加密
+            if (bytes.length > 1) {
+                for (let i = 0; i < bytes.length - 1; i++) {
+                    let str;
+                    if (i == 0) {
+                        str = text.substring(0, bytes[i + 1] + 1);
+                    } else {
+                        str = text.substring(bytes[i] + 1, bytes[i + 1] + 1);
+                    }
+                    const t1 = this.encrypt(str);
+                    ct += t1;
+                }
 
-            if (bytes[bytes.length - 1] != text.length - 1) {
-                const lastStr = text.substring(bytes[bytes.length - 1] + 1);
-                ct += this.encrypt(lastStr);
+                if (bytes[bytes.length - 1] != text.length - 1) {
+                    const lastStr = text.substring(bytes[bytes.length - 1] + 1);
+                    ct += this.encrypt(lastStr);
+                }
+                return hex2b64(ct);
+                // return ct;
             }
-            return ct;
+            const t = this.encrypt(text);
+            const y = hex2b64(t);
+
+            return y;
+        } catch (ex) {
+            return false;
         }
-        const t = this.encrypt(text);
-        return t;
     }
 
     /**
@@ -217,7 +230,8 @@ export class RSAKey {
      * @returns {string} 解密后的原文
      */
     public decryptLong(text:string) {
-        const maxLength = ((this.n.bitLength() + 7) >> 3);
+        const maxLength = (this.n.bitLength() + 7) >> 3;
+        text = b64tohex(text);
         try {
             if (text.length > maxLength) {
                 let ct = "";
@@ -247,10 +261,18 @@ export class RSAKey {
         }
     }
 
-
     // RSAKey.prototype.setPrivateEx = RSASetPrivateEx;
     // Set the private key fields N, e, d and CRT params from hex strings
-    public setPrivateEx(N:string, E:string, D:string, P:string, Q:string, DP:string, DQ:string, C:string) {
+    public setPrivateEx(
+        N:string,
+        E:string,
+        D:string,
+        P:string,
+        Q:string,
+        DP:string,
+        DQ:string,
+        C:string
+    ) {
         if (N != null && E != null && N.length > 0 && E.length > 0) {
             this.n = parseBigInt(N, 16);
             this.e = parseInt(E, 16);
@@ -265,7 +287,6 @@ export class RSAKey {
         }
     }
 
-
     // RSAKey.prototype.generate = RSAGenerate;
     // Generate a new random private key B bits long, using public expt E
     public generate(B:number, E:string) {
@@ -276,11 +297,27 @@ export class RSAKey {
         for (;;) {
             for (;;) {
                 this.p = new BigInteger(B - qs, 1, rng);
-                if (this.p.subtract(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) == 0 && this.p.isProbablePrime(10)) { break; }
+                if (
+                    this.p
+                        .subtract(BigInteger.ONE)
+                        .gcd(ee)
+                        .compareTo(BigInteger.ONE) == 0 &&
+                    this.p.isProbablePrime(10)
+                ) {
+                    break;
+                }
             }
             for (;;) {
                 this.q = new BigInteger(qs, 1, rng);
-                if (this.q.subtract(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) == 0 && this.q.isProbablePrime(10)) { break; }
+                if (
+                    this.q
+                        .subtract(BigInteger.ONE)
+                        .gcd(ee)
+                        .compareTo(BigInteger.ONE) == 0 &&
+                    this.q.isProbablePrime(10)
+                ) {
+                    break;
+                }
             }
             if (this.p.compareTo(this.q) <= 0) {
                 const t = this.p;
@@ -307,7 +344,9 @@ export class RSAKey {
     public decrypt(ctext:string) {
         const c = parseBigInt(ctext, 16);
         const m = this.doPrivate(c);
-        if (m == null) { return null; }
+        if (m == null) {
+            return null;
+        }
         return pkcs1unpad2(m, (this.n.bitLength() + 7) >> 3);
     }
 
@@ -336,7 +375,9 @@ export class RSAKey {
                     rsa.dmp1 = rsa.d.mod(p1);
                     rsa.dmq1 = rsa.d.mod(q1);
                     rsa.coeff = rsa.q.modInverse(rsa.p);
-                    setTimeout(function () {callback(); }, 0); // escape
+                    setTimeout(function () {
+                        callback();
+                    }, 0); // escape
                 } else {
                     setTimeout(loop1, 0);
                 }
@@ -410,28 +451,31 @@ export class RSAKey {
     protected dmp1:BigInteger;
     protected dmq1:BigInteger;
     protected coeff:BigInteger;
-
 }
-
 
 // Undo PKCS#1 (type 2, random) padding and, if valid, return the plaintext
 function pkcs1unpad2(d:BigInteger, n:number):string {
     const b = d.toByteArray();
     let i = 0;
-    while (i < b.length && b[i] == 0) { ++i; }
+    while (i < b.length && b[i] == 0) {
+        ++i;
+    }
     if (b.length - i != n - 1 || b[i] != 2) {
         return null;
     }
     ++i;
     while (b[i] != 0) {
-        if (++i >= b.length) { return null; }
+        if (++i >= b.length) {
+            return null;
+        }
     }
     let ret = "";
     while (++i < b.length) {
         const c = b[i] & 255;
-        if (c < 128) { // utf-8 decode
+        if (c < 128) {
+            // utf-8 decode
             ret += String.fromCharCode(c);
-        } else if ((c > 191) && (c < 224)) {
+        } else if (c > 191 && c < 224) {
             ret += String.fromCharCode(((c & 31) << 6) | (b[i + 1] & 63));
             ++i;
         } else {
@@ -451,7 +495,7 @@ const DIGEST_HEADERS:{ [name:string]:string } = {
     sha256: "3031300d060960864801650304020105000420",
     sha384: "3041300d060960864801650304020205000430",
     sha512: "3051300d060960864801650304020305000440",
-    ripemd160: "3021300906052b2403020105000414",
+    ripemd160: "3021300906052b2403020105000414"
 };
 
 function getDigestHeader(name:string):string {
@@ -471,13 +515,11 @@ function removeDigestHeader(str:string):string {
     return str;
 }
 
-
 // Return the PKCS#1 RSA encryption of "text" as a Base64-encoded string
 // function RSAEncryptB64(text) {
 //  var h = this.encrypt(text);
 //  if(h) return hex2b64(h); else return null;
 // }
-
 
 // public
 

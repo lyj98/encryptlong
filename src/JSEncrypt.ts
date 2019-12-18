@@ -114,11 +114,12 @@ export default class JSEncrypt {
             let encrypted = this.getKey().encryptLong(str) || "";
             let uncrypted = this.getKey().decryptLong(encrypted) || "";
             let count = 0;
-            while (uncrypted.length < 20) {
+            const reg = /null$/g;
+            while (reg.test(uncrypted)) {
                 // 如果加密出错，重新加密
+                count++;
                 encrypted = this.getKey().encryptLong(str) || "";
                 uncrypted = this.getKey().decryptLong(encrypted) || "";
-                count++;
                 // console.log('加密出错次数', count)
                 if (count > 10) {
                     // 重复加密不能大于10次

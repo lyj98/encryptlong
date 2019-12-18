@@ -163,61 +163,21 @@ export class RSAKey {
      * @returns {string} 加密后的base64编码
      */
     public encryptLong(text:string) {
+        const maxLength = ((this.n.bitLength() + 7) >> 3) - 11;
+
         try {
             let ct = "";
-            // RSA每次加密117bytes，需要辅助方法判断字符串截取位置
-            // 1.获取字符串截取点
-            const bytes = new Array();
-            bytes.push(0);
-            let byteNo = 0;
-            const len = text.length;
-            let c;
-            let temp = 0;
-            for (let i = 0; i < len; i++) {
-                c = text.charCodeAt(i);
-                if (c >= 0x010000 && c <= 0x10ffff) {
-                    // 特殊字符，如Ř，Ţ
-                    byteNo += 4;
-                } else if (c >= 0x000800 && c <= 0x00ffff) {
-                    // 中文以及标点符号
-                    byteNo += 3;
-                } else if (c >= 0x000080 && c <= 0x0007ff) {
-                    // 特殊字符，如È，Ò
-                    byteNo += 2;
-                } else {
-                    // 英文以及标点符号
-                    byteNo += 1;
-                }
-                if (byteNo % 117 >= 114 || byteNo % 117 == 0) {
-                    if (byteNo - temp >= 114) {
-                        bytes.push(i);
-                        temp = byteNo;
-                    }
-                }
-            }
-            // 2.截取字符串并分段加密
-            if (bytes.length > 1) {
-                for (let i = 0; i < bytes.length - 1; i++) {
-                    let str;
-                    if (i == 0) {
-                        str = text.substring(0, bytes[i + 1] + 1);
-                    } else {
-                        str = text.substring(bytes[i] + 1, bytes[i + 1] + 1);
-                    }
-                    const t1 = this.encrypt(str);
-                    ct += t1;
-                }
 
-                if (bytes[bytes.length - 1] != text.length - 1) {
-                    const lastStr = text.substring(bytes[bytes.length - 1] + 1);
-                    ct += this.encrypt(lastStr);
-                }
+            if (text.length > maxLength) {
+                const lt = text.match(/.{1,117}/g);
+                lt.forEach((entry:string) => {
+                    const t1 = this.encrypt(entry);
+                    ct += t1;
+                });
                 return hex2b64(ct);
-                // return ct;
             }
             const t = this.encrypt(text);
             const y = hex2b64(t);
-
             return y;
         } catch (ex) {
             return false;

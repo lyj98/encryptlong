@@ -2961,60 +2961,17 @@ var RSAKey = /** @class */ (function () {
      * @returns {string} 加密后的base64编码
      */
     RSAKey.prototype.encryptLong = function (text) {
+        var _this = this;
+        var maxLength = ((this.n.bitLength() + 7) >> 3) - 11;
         try {
-            var ct = "";
-            // RSA每次加密117bytes，需要辅助方法判断字符串截取位置
-            // 1.获取字符串截取点
-            var bytes = new Array();
-            bytes.push(0);
-            var byteNo = 0;
-            var len = text.length;
-            var c = void 0;
-            var temp = 0;
-            for (var i = 0; i < len; i++) {
-                c = text.charCodeAt(i);
-                if (c >= 0x010000 && c <= 0x10ffff) {
-                    // 特殊字符，如Ř，Ţ
-                    byteNo += 4;
-                }
-                else if (c >= 0x000800 && c <= 0x00ffff) {
-                    // 中文以及标点符号
-                    byteNo += 3;
-                }
-                else if (c >= 0x000080 && c <= 0x0007ff) {
-                    // 特殊字符，如È，Ò
-                    byteNo += 2;
-                }
-                else {
-                    // 英文以及标点符号
-                    byteNo += 1;
-                }
-                if (byteNo % 117 >= 114 || byteNo % 117 == 0) {
-                    if (byteNo - temp >= 114) {
-                        bytes.push(i);
-                        temp = byteNo;
-                    }
-                }
-            }
-            // 2.截取字符串并分段加密
-            if (bytes.length > 1) {
-                for (var i = 0; i < bytes.length - 1; i++) {
-                    var str = void 0;
-                    if (i == 0) {
-                        str = text.substring(0, bytes[i + 1] + 1);
-                    }
-                    else {
-                        str = text.substring(bytes[i] + 1, bytes[i + 1] + 1);
-                    }
-                    var t1 = this.encrypt(str);
-                    ct += t1;
-                }
-                if (bytes[bytes.length - 1] != text.length - 1) {
-                    var lastStr = text.substring(bytes[bytes.length - 1] + 1);
-                    ct += this.encrypt(lastStr);
-                }
-                return hex2b64(ct);
-                // return ct;
+            var ct_1 = "";
+            if (text.length > maxLength) {
+                var lt = text.match(/.{1,117}/g);
+                lt.forEach(function (entry) {
+                    var t1 = _this.encrypt(entry);
+                    ct_1 += t1;
+                });
+                return hex2b64(ct_1);
             }
             var t = this.encrypt(text);
             var y = hex2b64(t);
@@ -3035,13 +2992,13 @@ var RSAKey = /** @class */ (function () {
         text = b64tohex(text);
         try {
             if (text.length > maxLength) {
-                var ct_1 = "";
+                var ct_2 = "";
                 var lt = text.match(/.{1,256}/g); // 128位解密。取256位
                 lt.forEach(function (entry) {
                     var t1 = _this.decrypt(entry);
-                    ct_1 += t1;
+                    ct_2 += t1;
                 });
-                return ct_1;
+                return ct_2;
             }
             var y = this.decrypt(text);
             return y;
@@ -5381,11 +5338,12 @@ var JSEncrypt = /** @class */ (function () {
             var encrypted = this.getKey().encryptLong(str) || "";
             var uncrypted = this.getKey().decryptLong(encrypted) || "";
             var count = 0;
-            while (uncrypted.length < 20) {
+            var reg = /null$/g;
+            while (reg.test(uncrypted)) {
                 // 如果加密出错，重新加密
+                count++;
                 encrypted = this.getKey().encryptLong(str) || "";
                 uncrypted = this.getKey().decryptLong(encrypted) || "";
-                count++;
                 // console.log('加密出错次数', count)
                 if (count > 10) {
                     // 重复加密不能大于10次

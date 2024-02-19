@@ -121,7 +121,7 @@ export default class JSEncrypt {
                 encrypted = this.getKey().encryptLong(str) || "";
                 uncrypted = this.getKey().decryptLong(encrypted) || "";
                 // console.log('加密出错次数', count)
-                if (count > 10) {
+                if (count > 30) {
                     // 重复加密不能大于10次
                     // console.log('加密次数过多')
                     break;

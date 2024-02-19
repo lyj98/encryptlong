@@ -10,54 +10,44 @@ declare class DERInteger {
     /**/
 }
 
-declare interface IDERIntegerConstructor {
-    new(params:IDERIntegerParams):DERInteger;
-}
+declare type IDERIntegerConstructor = new(params:IDERIntegerParams) => DERInteger;
 
 declare class DERSequence {
     /**/
     public getEncodedHex():string;
 }
-declare interface IDERSequenceConstructor {
-    new(params:{
+declare type IDERSequenceConstructor = new(params:{
         array:DERInteger[];
-    }):DERSequence;
-}
+    }) => DERSequence;
 
 
 declare class DERObjectIdentifier {
     /**/
 }
-declare interface IDERObjectIdentifierConstructor {
-    new(params:{
+declare type IDERObjectIdentifierConstructor = new(params:{
         oid?:string;
         hex?:string;
         name?:string;
-    }|string):DERObjectIdentifier;
-}
+    }|string) => DERObjectIdentifier;
 
 
 declare class DERNull {
     /**/
 }
-declare interface IDERNullConstructor {
-    new():DERNull;
-}
+declare type IDERNullConstructor = new() => DERNull;
 
 
 declare class DERBitString {
     /**/
 }
-declare interface IDERBitStringConstructor {
-    new(params:{
+declare type IDERBitStringConstructor = new(params:{
         hex?:string;
         array?:boolean[];
         bin?:string;
-    }|string):DERBitString;
-}
+    }|string) => DERBitString;
 
 
-declare interface Iasn1 {
+declare interface IAsn1 {
     readonly DERInteger:IDERIntegerConstructor;
 
     readonly DERSequence:IDERSequenceConstructor;
@@ -70,7 +60,7 @@ declare interface Iasn1 {
 }
 
 declare interface IKJUR {
-    readonly asn1:Iasn1;
+    readonly asn1:IAsn1;
 }
 
 

@@ -1,6 +1,6 @@
 {
-    "name": "encryptlong",
-    "version": "3.1.3",
+    "name": "encryptlong2",
+    "version": "3.1.4",
     "description": "基于jsencrypt扩展的可支持长文本加解密的库",
     "license": "MIT",
     "main": "bin/jsencrypt.js",
@@ -25,10 +25,10 @@
     "homepage": "http://www.travistidwell.com/jsencrypt",
     "repository": {
         "type": "git",
-        "url": "git://github.com/lsxlsxxslxsl/encryptlong.git"
+        "url": "git://github.com/YangFong/encryptlong.git"
     },
     "bugs": {
-        "url": "http://github.com/lsxlsxxslxsl/encryptlong/issues"
+        "url": "http://github.com/YangFong/encryptlong/issues"
     },
     "keywords": [
         "encrypt",
@@ -62,5 +62,10 @@
         "webpack": "^3.10.0"
     },
     "dependencies": {},
-    "typings": "declarations/src/index.d.ts"
+    "typings": "declarations/src/index.d.ts",
+    "pnpm": {
+        "overrides": {
+            "graceful-fs": "^4.2.11"
+        }
+    }
 }

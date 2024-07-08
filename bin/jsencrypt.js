@@ -2940,6 +2940,7 @@ var RSAKey = /** @class */ (function () {
     // Return the PKCS#1 RSA encryption of "text" as an even-length hex string
     RSAKey.prototype.encrypt = function (text) {
         var m = pkcs1pad2(text, (this.n.bitLength() + 7) >> 3);
+        var encodeLength = ((this.n.bitLength() + 7) >> 3) * 2;
         if (m == null) {
             return null;
         }
@@ -2948,6 +2949,12 @@ var RSAKey = /** @class */ (function () {
             return null;
         }
         var h = c.toString(16);
+        if (h.length !== encodeLength) {
+            var zeroLength = encodeLength - h.length;
+            for (var index = 0; index < zeroLength; index++) {
+                h = "0" + h;
+            }
+        }
         if ((h.length & 1) == 0) {
             return h;
         }
@@ -2963,10 +2970,11 @@ var RSAKey = /** @class */ (function () {
     RSAKey.prototype.encryptLong = function (text) {
         var _this = this;
         var maxLength = ((this.n.bitLength() + 7) >> 3) - 11;
+        var regex = new RegExp(".{1," + maxLength + "}", 'g');
         try {
             var ct_1 = "";
             if (text.length > maxLength) {
-                var lt = text.match(/.{1,117}/g);
+                var lt = text.match(regex);
                 lt.forEach(function (entry) {
                     var t1 = _this.encrypt(entry);
                     ct_1 += t1;
@@ -2989,11 +2997,12 @@ var RSAKey = /** @class */ (function () {
     RSAKey.prototype.decryptLong = function (text) {
         var _this = this;
         var maxLength = (this.n.bitLength() + 7) >> 3;
+        var regex = new RegExp(".{1," + maxLength * 2 + "}", 'g');
         text = b64tohex(text);
         try {
             if (text.length > maxLength) {
                 var ct_2 = "";
-                var lt = text.match(/.{1,256}/g); // 128位解密。取256位
+                var lt = text.match(regex); // 根据加密长度取值, 128位解密。取256位
                 lt.forEach(function (entry) {
                     var t1 = _this.decrypt(entry);
                     ct_2 += t1;
@@ -3046,20 +3055,16 @@ var RSAKey = /** @class */ (function () {
         for (;;) {
             for (;;) {
                 this.p = new BigInteger(B - qs, 1, rng);
-                if (this.p
-                    .subtract(BigInteger.ONE)
-                    .gcd(ee)
-                    .compareTo(BigInteger.ONE) == 0 &&
+                if (this.p.subtract(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) ==
+                    0 &&
                     this.p.isProbablePrime(10)) {
                     break;
                 }
             }
             for (;;) {
                 this.q = new BigInteger(qs, 1, rng);
-                if (this.q
-                    .subtract(BigInteger.ONE)
-                    .gcd(ee)
-                    .compareTo(BigInteger.ONE) == 0 &&
+                if (this.q.subtract(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) ==
+                    0 &&
                     this.q.isProbablePrime(10)) {
                     break;
                 }
@@ -3230,7 +3235,7 @@ var DIGEST_HEADERS = {
     sha256: "3031300d060960864801650304020105000420",
     sha384: "3041300d060960864801650304020205000430",
     sha512: "3051300d060960864801650304020305000440",
-    ripemd160: "3021300906052b2403020105000414"
+    ripemd160: "3021300906052b2403020105000414",
 };
 function getDigestHeader(name) {
     return DIGEST_HEADERS[name] || "";
@@ -5467,7 +5472,7 @@ var JSEncrypt = /** @class */ (function () {
         // Return the private representation of this key.
         return this.getKey().getPublicBaseKeyB64();
     };
-    JSEncrypt.version = "3.1.3";
+    JSEncrypt.version = "3.1.7";
     return JSEncrypt;
 }());
 

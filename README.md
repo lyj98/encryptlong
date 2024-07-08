@@ -22,7 +22,7 @@ npm i encryptlong -S
 
 # 基本使用
 
-> 注意：使用长文本加密时最好公私钥都要设置，避免有概率加密失败
+> 修复长文本加密概率失败问题
 
 这里只扩展了长文本的分段加解密，其它 api 请查看官网 http://travistidwell.com/jsencrypt
 

@@ -149,7 +149,13 @@ export class RSAKey {
         if (c == null) {
             return null;
         }
-        const h = c.toString(16);
+        let h = c.toString(16);
+        if (h.length !== 256) {
+            let zeroLength = 256 - h.length;
+            for (let index = 0; index < zeroLength; index++) {
+              h = '0' + h;
+            }
+          }
         if ((h.length & 1) == 0) {
             return h;
         } else {

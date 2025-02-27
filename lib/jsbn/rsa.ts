@@ -25,7 +25,7 @@ import { hex2b64, b64tohex } from "./base64";
 //     return b.toString(16);
 // }
 
-function pkcs1pad1(s:string, n:number) {
+function pkcs1pad1(s: string, n: number) {
   if (n < s.length + 22) {
     console.error("Message too long for RSA");
     return null;
@@ -40,7 +40,7 @@ function pkcs1pad1(s:string, n:number) {
 }
 
 // PKCS#1 (type 2, random) pad input string s to n bytes, and return a bigint
-function pkcs1pad2(s:string, n:number) {
+function pkcs1pad2(s: string, n: number) {
   if (n < s.length + 11) {
     // TODO: fix for utf-8
 
@@ -96,13 +96,13 @@ export class RSAKey {
   // protected
   // RSAKey.prototype.doPublic = RSADoPublic;
   // Perform raw public operation on "x": return x^e (mod n)
-  public doPublic(x:BigInteger) {
+  public doPublic(x: BigInteger) {
     return x.modPowInt(this.e, this.n);
   }
 
   // RSAKey.prototype.doPrivate = RSADoPrivate;
   // Perform raw private operation on "x": return x^d (mod n)
-  public doPrivate(x:BigInteger) {
+  public doPrivate(x: BigInteger) {
     if (this.p == null || this.q == null) {
       return x.modPow(this.d, this.n);
     }
@@ -128,7 +128,7 @@ export class RSAKey {
 
   // RSAKey.prototype.setPublic = RSASetPublic;
   // Set the public key fields N and e from hex strings
-  public setPublic(N:string, E:string) {
+  public setPublic(N: string, E: string) {
     if (N != null && E != null && N.length > 0 && E.length > 0) {
       this.n = parseBigInt(N, 16);
       this.e = parseInt(E, 16);
@@ -139,9 +139,8 @@ export class RSAKey {
 
   // RSAKey.prototype.encrypt = RSAEncrypt;
   // Return the PKCS#1 RSA encryption of "text" as an even-length hex string
-  public encrypt(text:string) {
+  public encrypt(text: string) {
     const m = pkcs1pad2(text, (this.n.bitLength() + 7) >> 3);
-    const encodeLength = ((this.n.bitLength() + 7) >> 3) * 2;
 
     if (m == null) {
       return null;
@@ -151,8 +150,8 @@ export class RSAKey {
       return null;
     }
     let h = c.toString(16);
-    if (h.length !== encodeLength) {
-      const zeroLength = encodeLength - h.length;
+    if (h.length !== 256) {
+      const zeroLength = 256 - h.length;
       for (let index = 0; index < zeroLength; index++) {
         h = "0" + h;
       }
@@ -164,21 +163,64 @@ export class RSAKey {
     }
   }
 
+  public splitStringByBits(str: string, bitsPerChunk = 117) {
+    // 使用 TextEncoder 将字符串转为 UTF-8 字节数组
+    const encoder = new TextEncoder();
+    const byteArray = encoder.encode(str);
+    const totalBits = byteArray.length;
+
+    // 如果总 bit 数小于目标，直接返回原字符串
+    if (totalBits <= bitsPerChunk) {
+      return [str];
+    }
+
+    const result = [];
+    let currentBits = 0;
+    let startIndex = 0;
+
+    // 遍历原始字符串，按 bit 计数分割
+    for (let i = 0; i < str.length; i++) {
+      // 获取当前字符的 UTF-8 字节长度
+      const char = str[i];
+      const charBytes = encoder.encode(char).length;
+      const charBits = charBytes;
+
+      currentBits += charBits;
+
+      // 当累计 bit 数达到或超过 117 时，分割
+      if (currentBits >= bitsPerChunk) {
+        result.push(str.slice(startIndex, i + 1));
+        startIndex = i + 1;
+        currentBits = 0; // 重置 bit 计数
+      }
+    }
+
+    // 处理剩余部分（如果有）
+    if (startIndex < str.length) {
+      result.push(str.slice(startIndex));
+    }
+
+    return result;
+  }
+
   /**
    * 长文本加密
    * @param {string} string 待加密长文本
    * @returns {string} 加密后的base64编码
    */
-  public encryptLong(text:string) {
+  public encryptLong(text: string) {
     const maxLength = ((this.n.bitLength() + 7) >> 3) - 11;
-    const regex = new RegExp(`.{1,${maxLength}}`, "g");
+
+    // 计算文本的UTF-8字节数组长度
+    const encoder = new TextEncoder();
+    const byteArray = encoder.encode(text);
+    const totalBits = byteArray.length;
 
     try {
       let ct = "";
-
-      if (text.length > maxLength) {
-        const lt = text.match(regex);
-        lt.forEach((entry:string) => {
+      if (totalBits > maxLength) {
+        const lt = this.splitStringByBits(text, maxLength);
+        lt.forEach((entry: string) => {
           const t1 = this.encrypt(entry);
           ct += t1;
         });
@@ -197,15 +239,14 @@ export class RSAKey {
    * @param {string} string 加密后的base64编码
    * @returns {string} 解密后的原文
    */
-  public decryptLong(text:string) {
+  public decryptLong(text: string) {
     const maxLength = (this.n.bitLength() + 7) >> 3;
-    const regex = new RegExp(`.{1,${maxLength * 2}}`, "g");
     text = b64tohex(text);
     try {
       if (text.length > maxLength) {
         let ct = "";
-        const lt = text.match(regex); // 根据加密长度取值, 128位解密。取256位
-        lt.forEach((entry) => {
+        const lt = text.match(/.{1,256}/g); // 128位解密。取256位
+        lt.forEach(entry => {
           const t1 = this.decrypt(entry);
           ct += t1;
         });
@@ -220,7 +261,7 @@ export class RSAKey {
 
   // RSAKey.prototype.setPrivate = RSASetPrivate;
   // Set the private key fields N, e, and d from hex strings
-  public setPrivate(N:string, E:string, D:string) {
+  public setPrivate(N: string, E: string, D: string) {
     if (N != null && E != null && N.length > 0 && E.length > 0) {
       this.n = parseBigInt(N, 16);
       this.e = parseInt(E, 16);
@@ -233,14 +274,14 @@ export class RSAKey {
   // RSAKey.prototype.setPrivateEx = RSASetPrivateEx;
   // Set the private key fields N, e, d and CRT params from hex strings
   public setPrivateEx(
-    N:string,
-    E:string,
-    D:string,
-    P:string,
-    Q:string,
-    DP:string,
-    DQ:string,
-    C:string
+    N: string,
+    E: string,
+    D: string,
+    P: string,
+    Q: string,
+    DP: string,
+    DQ: string,
+    C: string
   ) {
     if (N != null && E != null && N.length > 0 && E.length > 0) {
       this.n = parseBigInt(N, 16);
@@ -258,7 +299,7 @@ export class RSAKey {
 
   // RSAKey.prototype.generate = RSAGenerate;
   // Generate a new random private key B bits long, using public expt E
-  public generate(B:number, E:string) {
+  public generate(B: number, E: string) {
     const rng = new SecureRandom();
     const qs = B >> 1;
     this.e = parseInt(E, 16);
@@ -306,7 +347,7 @@ export class RSAKey {
   // RSAKey.prototype.decrypt = RSADecrypt;
   // Return the PKCS#1 RSA decryption of "ctext".
   // "ctext" is an even-length hex string and the output is a plain string.
-  public decrypt(ctext:string) {
+  public decrypt(ctext: string) {
     const c = parseBigInt(ctext, 16);
     const m = this.doPrivate(c);
     if (m == null) {
@@ -316,7 +357,7 @@ export class RSAKey {
   }
 
   // Generate a new random private key B bits long, using public expt E
-  public generateAsync(B:number, E:string, callback:() => void) {
+  public generateAsync(B: number, E: string, callback: () => void) {
     const rng = new SecureRandom();
     const qs = B >> 1;
     this.e = parseInt(E, 16);
@@ -377,10 +418,10 @@ export class RSAKey {
   }
 
   public sign(
-    text:string,
-    digestMethod:(str:string) => string,
-    digestName:string
-  ):string {
+    text: string,
+    digestMethod: (str: string) => string,
+    digestName: string
+  ): string {
     const header = getDigestHeader(digestName);
     const digest = header + digestMethod(text).toString();
     const m = pkcs1pad1(digest, this.n.bitLength() / 4);
@@ -400,10 +441,10 @@ export class RSAKey {
   }
 
   public verify(
-    text:string,
-    signature:string,
-    digestMethod:(str:string) => string
-  ):boolean {
+    text: string,
+    signature: string,
+    digestMethod: (str: string) => string
+  ): boolean {
     const c = parseBigInt(signature, 16);
     const m = this.doPublic(c);
     if (m == null) {
@@ -416,18 +457,18 @@ export class RSAKey {
 
   //#endregion PUBLIC
 
-  protected n:BigInteger;
-  protected e:number;
-  protected d:BigInteger;
-  protected p:BigInteger;
-  protected q:BigInteger;
-  protected dmp1:BigInteger;
-  protected dmq1:BigInteger;
-  protected coeff:BigInteger;
+  protected n: BigInteger;
+  protected e: number;
+  protected d: BigInteger;
+  protected p: BigInteger;
+  protected q: BigInteger;
+  protected dmp1: BigInteger;
+  protected dmq1: BigInteger;
+  protected coeff: BigInteger;
 }
 
 // Undo PKCS#1 (type 2, random) padding and, if valid, return the plaintext
-function pkcs1unpad2(d:BigInteger, n:number):string {
+function pkcs1unpad2(d: BigInteger, n: number): string {
   const b = d.toByteArray();
   let i = 0;
   while (i < b.length && b[i] == 0) {
@@ -462,7 +503,7 @@ function pkcs1unpad2(d:BigInteger, n:number):string {
 }
 
 // https://tools.ietf.org/html/rfc3447#page-43
-const DIGEST_HEADERS:{ [name:string]:string } = {
+const DIGEST_HEADERS: { [name: string]: string } = {
   md2: "3020300c06082a864886f70d020205000410",
   md5: "3020300c06082a864886f70d020505000410",
   sha1: "3021300906052b0e03021a05000414",
@@ -473,11 +514,11 @@ const DIGEST_HEADERS:{ [name:string]:string } = {
   ripemd160: "3021300906052b2403020105000414",
 };
 
-function getDigestHeader(name:string):string {
+function getDigestHeader(name: string): string {
   return DIGEST_HEADERS[name] || "";
 }
 
-function removeDigestHeader(str:string):string {
+function removeDigestHeader(str: string): string {
   for (const name in DIGEST_HEADERS) {
     if (DIGEST_HEADERS.hasOwnProperty(name)) {
       const header = DIGEST_HEADERS[name];

@@ -1,6 +1,6 @@
 {
-  "name": "@linlabs/encryptlong",
-  "version": "3.1.7",
+  "name": "encryptlong",
+  "version": "3.1.8",
   "description": "基于jsencrypt扩展的可支持长文本加解密的库",
   "license": "MIT",
   "main": "bin/jsencrypt.js",
@@ -11,7 +11,7 @@
     {
       "name": "Travis Tidwell",
       "email": "travis@form.io",
-      "url": "https://github.com/travist"
+      "url": "http://github.com/travist"
     },
     {
       "name": "Antonio",
@@ -22,10 +22,10 @@
       "url": "https://github.com/jmgaya"
     }
   ],
-  "homepage": "https://www.travistidwell.com/jsencrypt",
+  "homepage": "http://www.travistidwell.com/jsencrypt",
   "repository": {
     "type": "git",
-    "url": "git://github.com/lyj98/encryptlong.git"
+    "url": "https://github.com/lyj98/encryptlong.git"
   },
   "bugs": {
     "url": "https://github.com/lyj98/encryptlong/issues"
@@ -70,5 +70,6 @@
   },
   "resolutions": {
     "graceful-fs": "^4.2.11"
+  
   }
 }

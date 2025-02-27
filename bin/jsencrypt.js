@@ -2940,7 +2940,6 @@ var RSAKey = /** @class */ (function () {
     // Return the PKCS#1 RSA encryption of "text" as an even-length hex string
     RSAKey.prototype.encrypt = function (text) {
         var m = pkcs1pad2(text, (this.n.bitLength() + 7) >> 3);
-        var encodeLength = ((this.n.bitLength() + 7) >> 3) * 2;
         if (m == null) {
             return null;
         }
@@ -2949,8 +2948,8 @@ var RSAKey = /** @class */ (function () {
             return null;
         }
         var h = c.toString(16);
-        if (h.length !== encodeLength) {
-            var zeroLength = encodeLength - h.length;
+        if (h.length !== 256) {
+            var zeroLength = 256 - h.length;
             for (var index = 0; index < zeroLength; index++) {
                 h = "0" + h;
             }
@@ -2962,6 +2961,39 @@ var RSAKey = /** @class */ (function () {
             return "0" + h;
         }
     };
+    RSAKey.prototype.splitStringByBits = function (str, bitsPerChunk) {
+        if (bitsPerChunk === void 0) { bitsPerChunk = 117; }
+        // 使用 TextEncoder 将字符串转为 UTF-8 字节数组
+        var encoder = new TextEncoder();
+        var byteArray = encoder.encode(str);
+        var totalBits = byteArray.length;
+        // 如果总 bit 数小于目标，直接返回原字符串
+        if (totalBits <= bitsPerChunk) {
+            return [str];
+        }
+        var result = [];
+        var currentBits = 0;
+        var startIndex = 0;
+        // 遍历原始字符串，按 bit 计数分割
+        for (var i = 0; i < str.length; i++) {
+            // 获取当前字符的 UTF-8 字节长度
+            var char = str[i];
+            var charBytes = encoder.encode(char).length;
+            var charBits = charBytes;
+            currentBits += charBits;
+            // 当累计 bit 数达到或超过 117 时，分割
+            if (currentBits >= bitsPerChunk) {
+                result.push(str.slice(startIndex, i + 1));
+                startIndex = i + 1;
+                currentBits = 0; // 重置 bit 计数
+            }
+        }
+        // 处理剩余部分（如果有）
+        if (startIndex < str.length) {
+            result.push(str.slice(startIndex));
+        }
+        return result;
+    };
     /**
      * 长文本加密
      * @param {string} string 待加密长文本
@@ -2970,11 +3002,14 @@ var RSAKey = /** @class */ (function () {
     RSAKey.prototype.encryptLong = function (text) {
         var _this = this;
         var maxLength = ((this.n.bitLength() + 7) >> 3) - 11;
-        var regex = new RegExp(".{1," + maxLength + "}", 'g');
+        // 计算文本的UTF-8字节数组长度
+        var encoder = new TextEncoder();
+        var byteArray = encoder.encode(text);
+        var totalBits = byteArray.length;
         try {
             var ct_1 = "";
-            if (text.length > maxLength) {
-                var lt = text.match(regex);
+            if (totalBits > maxLength) {
+                var lt = this.splitStringByBits(text, maxLength);
                 lt.forEach(function (entry) {
                     var t1 = _this.encrypt(entry);
                     ct_1 += t1;
@@ -2997,12 +3032,11 @@ var RSAKey = /** @class */ (function () {
     RSAKey.prototype.decryptLong = function (text) {
         var _this = this;
         var maxLength = (this.n.bitLength() + 7) >> 3;
-        var regex = new RegExp(".{1," + maxLength * 2 + "}", 'g');
         text = b64tohex(text);
         try {
             if (text.length > maxLength) {
                 var ct_2 = "";
-                var lt = text.match(regex); // 根据加密长度取值, 128位解密。取256位
+                var lt = text.match(/.{1,256}/g); // 128位解密。取256位
                 lt.forEach(function (entry) {
                     var t1 = _this.decrypt(entry);
                     ct_2 += t1;
@@ -5472,7 +5506,7 @@ var JSEncrypt = /** @class */ (function () {
         // Return the private representation of this key.
         return this.getKey().getPublicBaseKeyB64();
     };
-    JSEncrypt.version = "3.1.7";
+    JSEncrypt.version = "3.1.8";
     return JSEncrypt;
 }());
 

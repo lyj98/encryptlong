@@ -22,6 +22,8 @@ npm i encryptlong -S
 
 # 基本使用
 
+> 修复长文本加密概率失败问题
+
 这里只扩展了长文本的分段加解密，其它 api 请查看官网 http://travistidwell.com/jsencrypt
 
 -   `encryptLong()` 长文本加密

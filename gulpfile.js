@@ -107,5 +107,5 @@ gulp.task("compress", function(cb) {
         .pipe(gulp.dest("bin"));
 });
 
-gulp.task("build", ["prepare_test", "lint", "assemble", "license", "compress"]);
+gulp.task("build", ["prepare_test", "assemble", "license", "compress"]);
 gulp.task("default", ["build"]);

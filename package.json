@@ -1,6 +1,6 @@
 {
   "name": "encryptlong",
-  "version": "3.1.4",
+  "version": "3.1.8",
   "description": "基于jsencrypt扩展的可支持长文本加解密的库",
   "license": "MIT",
   "main": "bin/jsencrypt.js",
@@ -62,5 +62,8 @@
     "webpack": "^3.10.0"
   },
   "dependencies": {},
-  "typings": "declarations/src/index.d.ts"
+  "typings": "declarations/src/index.d.ts",
+  "resolutions": {
+    "graceful-fs": "^4.1.2"
+  }
 }

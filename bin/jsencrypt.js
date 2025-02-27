@@ -129,18 +129,18 @@ function b64tohex(s) {
 }
 
 /*! *****************************************************************************
-Copyright (c) Microsoft Corporation. All rights reserved.
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use
-this file except in compliance with the License. You may obtain a copy of the
-License at http://www.apache.org/licenses/LICENSE-2.0
+Copyright (c) Microsoft Corporation.
 
-THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
-WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
-MERCHANTABLITY OR NON-INFRINGEMENT.
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
 
-See the Apache Version 2.0 License for specific language governing permissions
-and limitations under the License.
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
 ***************************************************************************** */
 /* global Reflect, Promise */
 
@@ -2948,12 +2948,51 @@ var RSAKey = /** @class */ (function () {
             return null;
         }
         var h = c.toString(16);
+        if (h.length !== 256) {
+            var zeroLength = 256 - h.length;
+            for (var index = 0; index < zeroLength; index++) {
+                h = "0" + h;
+            }
+        }
         if ((h.length & 1) == 0) {
             return h;
         }
         else {
             return "0" + h;
         }
+    };
+    RSAKey.prototype.splitStringByBits = function (str, bitsPerChunk) {
+        if (bitsPerChunk === void 0) { bitsPerChunk = 117; }
+        // 使用 TextEncoder 将字符串转为 UTF-8 字节数组
+        var encoder = new TextEncoder();
+        var byteArray = encoder.encode(str);
+        var totalBits = byteArray.length;
+        // 如果总 bit 数小于目标，直接返回原字符串
+        if (totalBits <= bitsPerChunk) {
+            return [str];
+        }
+        var result = [];
+        var currentBits = 0;
+        var startIndex = 0;
+        // 遍历原始字符串，按 bit 计数分割
+        for (var i = 0; i < str.length; i++) {
+            // 获取当前字符的 UTF-8 字节长度
+            var char = str[i];
+            var charBytes = encoder.encode(char).length;
+            var charBits = charBytes;
+            currentBits += charBits;
+            // 当累计 bit 数达到或超过 117 时，分割
+            if (currentBits >= bitsPerChunk) {
+                result.push(str.slice(startIndex, i + 1));
+                startIndex = i + 1;
+                currentBits = 0; // 重置 bit 计数
+            }
+        }
+        // 处理剩余部分（如果有）
+        if (startIndex < str.length) {
+            result.push(str.slice(startIndex));
+        }
+        return result;
     };
     /**
      * 长文本加密
@@ -2963,10 +3002,14 @@ var RSAKey = /** @class */ (function () {
     RSAKey.prototype.encryptLong = function (text) {
         var _this = this;
         var maxLength = ((this.n.bitLength() + 7) >> 3) - 11;
+        // 计算文本的UTF-8字节数组长度
+        var encoder = new TextEncoder();
+        var byteArray = encoder.encode(text);
+        var totalBits = byteArray.length;
         try {
             var ct_1 = "";
-            if (text.length > maxLength) {
-                var lt = text.match(/.{1,117}/g);
+            if (totalBits > maxLength) {
+                var lt = this.splitStringByBits(text, maxLength);
                 lt.forEach(function (entry) {
                     var t1 = _this.encrypt(entry);
                     ct_1 += t1;
@@ -3046,20 +3089,16 @@ var RSAKey = /** @class */ (function () {
         for (;;) {
             for (;;) {
                 this.p = new BigInteger(B - qs, 1, rng);
-                if (this.p
-                    .subtract(BigInteger.ONE)
-                    .gcd(ee)
-                    .compareTo(BigInteger.ONE) == 0 &&
+                if (this.p.subtract(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) ==
+                    0 &&
                     this.p.isProbablePrime(10)) {
                     break;
                 }
             }
             for (;;) {
                 this.q = new BigInteger(qs, 1, rng);
-                if (this.q
-                    .subtract(BigInteger.ONE)
-                    .gcd(ee)
-                    .compareTo(BigInteger.ONE) == 0 &&
+                if (this.q.subtract(BigInteger.ONE).gcd(ee).compareTo(BigInteger.ONE) ==
+                    0 &&
                     this.q.isProbablePrime(10)) {
                     break;
                 }
@@ -3230,7 +3269,7 @@ var DIGEST_HEADERS = {
     sha256: "3031300d060960864801650304020105000420",
     sha384: "3041300d060960864801650304020205000430",
     sha512: "3051300d060960864801650304020305000440",
-    ripemd160: "3021300906052b2403020105000414"
+    ripemd160: "3021300906052b2403020105000414",
 };
 function getDigestHeader(name) {
     return DIGEST_HEADERS[name] || "";
@@ -5467,7 +5506,7 @@ var JSEncrypt = /** @class */ (function () {
         // Return the private representation of this key.
         return this.getKey().getPublicBaseKeyB64();
     };
-    JSEncrypt.version = "3.1.2";
+    JSEncrypt.version = "3.1.8";
     return JSEncrypt;
 }());
 

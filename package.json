@@ -1,6 +1,6 @@
 {
   "name": "encryptlong",
-  "version": "3.1.8",
+  "version": "3.1.9",
   "description": "基于jsencrypt扩展的可支持长文本加解密的库",
   "license": "MIT",
   "main": "bin/jsencrypt.js",
@@ -70,6 +70,5 @@
   },
   "resolutions": {
     "graceful-fs": "^4.2.11"
-  
   }
 }

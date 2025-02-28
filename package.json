@@ -1,6 +1,6 @@
 {
   "name": "@linlabs/encryptlong",
-  "version": "3.1.13",
+  "version": "3.1.14",
   "description": "基于jsencrypt扩展的可支持长文本加解密的库",
   "license": "MIT",
   "main": "bin/jsencrypt.js",

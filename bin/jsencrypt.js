@@ -2964,32 +2964,41 @@ var RSAKey = /** @class */ (function () {
     };
     RSAKey.prototype.splitStringByBits = function (str, bitsPerChunk) {
         if (bitsPerChunk === void 0) { bitsPerChunk = 117; }
-        // 使用 TextEncoder 将字符串转为 UTF-8 字节数组
         var encoder = new TextEncoder();
         var byteArray = encoder.encode(str);
-        var totalBits = byteArray.length;
-        // 如果总 bit 数小于目标，直接返回原字符串
+        var totalBits = byteArray.length; // 当前按字节计，后续可改为 * 8 处理真正位数
         if (totalBits <= bitsPerChunk) {
             return [str];
         }
         var result = [];
         var currentBits = 0;
         var startIndex = 0;
-        // 遍历原始字符串，按 bit 计数分割
         for (var i = 0; i < str.length; i++) {
-            // 获取当前字符的 UTF-8 字节长度
             var char = str[i];
-            var charBytes = encoder.encode(char).length;
-            var charBits = charBytes;
-            currentBits += charBits;
-            // 当累计 bit 数达到或超过 117 时，分割
-            if (currentBits >= bitsPerChunk) {
-                result.push(str.slice(startIndex, i + 1));
-                startIndex = i + 1;
-                currentBits = 0; // 重置 bit 计数
+            var charBits = encoder.encode(char).length; // 当前字符的字节数
+            // 在加入当前字符前检查是否会超过
+            if (currentBits + charBits > bitsPerChunk) {
+                // 先将之前的部分分割
+                if (currentBits > 0) {
+                    result.push(str.slice(startIndex, i));
+                    startIndex = i;
+                    currentBits = 0;
+                }
+                // 如果单个字符就超过限制，单独处理
+                if (charBits <= bitsPerChunk) {
+                    result.push(char);
+                    startIndex = i + 1;
+                }
+                else {
+                    // 如果单个字符超过限制，可以选择抛出错误或按字节截断
+                    throw new Error("Character at index " + i + " exceeds bitsPerChunk limit");
+                }
+            }
+            else {
+                currentBits += charBits;
             }
         }
-        // 处理剩余部分（如果有）
+        // 处理剩余部分
         if (startIndex < str.length) {
             result.push(str.slice(startIndex));
         }
@@ -5507,7 +5516,7 @@ var JSEncrypt = /** @class */ (function () {
         // Return the private representation of this key.
         return this.getKey().getPublicBaseKeyB64();
     };
-    JSEncrypt.version = "3.1.12";
+    JSEncrypt.version = "3.1.13";
     return JSEncrypt;
 }());
 

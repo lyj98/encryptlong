@@ -164,40 +164,45 @@ export class RSAKey {
   }
 
   public splitStringByBits(str: string, bitsPerChunk = 117) {
-    // 使用 TextEncoder 将字符串转为 UTF-8 字节数组
     const encoder = new TextEncoder();
     const byteArray = encoder.encode(str);
-    const totalBits = byteArray.length;
-
-    // 如果总 bit 数小于目标，直接返回原字符串
+    const totalBits = byteArray.length; // 当前按字节计，后续可改为 * 8 处理真正位数
     if (totalBits <= bitsPerChunk) {
-      return [str];
+        return [str];
     }
 
     const result = [];
     let currentBits = 0;
     let startIndex = 0;
 
-    // 遍历原始字符串，按 bit 计数分割
     for (let i = 0; i < str.length; i++) {
-      // 获取当前字符的 UTF-8 字节长度
-      const char = str[i];
-      const charBytes = encoder.encode(char).length;
-      const charBits = charBytes;
+        const char = str[i];
+        const charBits = encoder.encode(char).length; // 当前字符的字节数
 
-      currentBits += charBits;
-
-      // 当累计 bit 数达到或超过 117 时，分割
-      if (currentBits >= bitsPerChunk) {
-        result.push(str.slice(startIndex, i + 1));
-        startIndex = i + 1;
-        currentBits = 0; // 重置 bit 计数
-      }
+        // 在加入当前字符前检查是否会超过
+        if (currentBits + charBits > bitsPerChunk) {
+            // 先将之前的部分分割
+            if (currentBits > 0) {
+                result.push(str.slice(startIndex, i));
+                startIndex = i;
+                currentBits = 0;
+            }
+            // 如果单个字符就超过限制，单独处理
+            if (charBits <= bitsPerChunk) {
+                result.push(char);
+                startIndex = i + 1;
+            } else {
+                // 如果单个字符超过限制，可以选择抛出错误或按字节截断
+                throw new Error(`Character at index ${i} exceeds bitsPerChunk limit`);
+            }
+        } else {
+            currentBits += charBits;
+        }
     }
 
-    // 处理剩余部分（如果有）
+    // 处理剩余部分
     if (startIndex < str.length) {
-      result.push(str.slice(startIndex));
+        result.push(str.slice(startIndex));
     }
 
     return result;

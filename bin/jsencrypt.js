@@ -63,7 +63,8 @@ function cbit(x) {
 }
 //#endregion BIT_OPERATIONS
 
-var b64map = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+// const b64map = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+var b64map = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 var b64pad = "=";
 function hex2b64(h) {
     var i;
@@ -5506,7 +5507,7 @@ var JSEncrypt = /** @class */ (function () {
         // Return the private representation of this key.
         return this.getKey().getPublicBaseKeyB64();
     };
-    JSEncrypt.version = "3.1.10";
+    JSEncrypt.version = "3.1.12";
     return JSEncrypt;
 }());
 
